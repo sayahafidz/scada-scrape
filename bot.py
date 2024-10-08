@@ -3,6 +3,8 @@ import threading
 import time
 import websocket
 from datetime import datetime
+import pyodbc
+
 
 # Create a mapping of id to name
 id_to_name = {
@@ -114,6 +116,7 @@ id_to_name = {
     449: "PLC_KLARIFIKASI.FM_Tot2"
 }
 
+# for debugging purpose, the data will be output as a text file
 # Function to log messages into a text file
 def log_to_file(message):
     with open("websocket_data.txt", "a") as file:
@@ -189,7 +192,15 @@ def on_open(ws):
 # Function to run the WebSocket client
 def run_websocket():
     websocket.enableTrace(True)
-    ws = websocket.WebSocketApp("wss://7111227700060158162.sg1.tunnel.iotbus.net/socket.io/?EIO=3&transport=websocket",
+    # adolina
+    # ws = websocket.WebSocketApp("wss://7111227700060158162.sg1.tunnel.iotbus.net/socket.io/?EIO=3&transport=websocket",
+    #                             on_message=on_message,
+    #                             on_error=on_error,
+    #                             on_close=on_close,
+    #                             on_open=on_open)
+    # websocket.enableTrace(True)
+    # ajamu
+    ws = websocket.WebSocketApp("wss://7092627700120179018.hk1.tunnel.iotbus.net/socket.io/?EIO=3&transport=websocket",
                                 on_message=on_message,
                                 on_error=on_error,
                                 on_close=on_close,
@@ -210,3 +221,126 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Script interrupted, closing connection")
         log_to_file("Script interrupted, closing connection")
+
+
+
+
+# for production purpose, the data will be output to a database server
+# # Function to log messages into a text file
+# def log_to_file(message):
+#     with open("websocket_data.txt", "a") as file:
+#         file.write(message + "\n")
+
+# # Function to filter out unwanted messages based on their pattern
+# def is_unwanted_message(message):
+#     pattern1 = re.compile(r'42\["return var to browser",\{"13":\d+\}\]')
+#     pattern2 = re.compile(r'42\["return var to browser",\{"15":"\d{2}:\d{2}:\d{2}"\}\]')
+#     pattern3 = re.compile(r'42\["return var to browser",\{"16":"\d+:\d{2}:\d{2}"\}\]')
+    
+#     return pattern1.match(message) or pattern2.match(message) or pattern3.match(message)
+
+# # Function to extract and label data by id
+# def label_message_by_id(message):
+#     match = re.search(r'42\["return var to browser",(\{.*?\})\]', message)
+#     if match:
+#         data = eval(match.group(1))
+#         labeled_data = {}
+#         for key, value in data.items():
+#             key = int(key)
+#             if key in id_to_name:
+#                 labeled_data[id_to_name[key]] = value
+#             else:
+#                 labeled_data[f"Unknown ID {key}"] = value
+#         return labeled_data if labeled_data else None
+#     return None
+
+# # Database connection setup
+# def create_db_connection():
+#     connection_string = (
+#         "Driver={SQL Server};"
+#         "Server=38.47.80.152,1433;"
+#         "Database=IOT_MILL;"
+#         "UID=iot_mill_user_1;"
+#         "PWD=i09c332s;"
+#     )
+#     return pyodbc.connect(connection_string)
+
+# # Function to create a table if it does not exist
+# def create_table(cursor, label):
+#     table_name = label.replace('.', '_')  # Use '_' instead of '.' for table name
+#     cursor.execute(f"""
+#         IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{table_name}' AND xtype='U')
+#         CREATE TABLE {table_name} (
+#             Timestamp DATETIME,
+#             Value NVARCHAR(255)
+#         )
+#     """)
+#     cursor.commit()
+
+# # Function to insert data into the table
+# def insert_data(cursor, label, timestamp, value):
+#     table_name = label.replace('.', '_')
+#     cursor.execute(f"""
+#         INSERT INTO {table_name} (Timestamp, Value)
+#         VALUES (?, ?)
+#     """, (timestamp, value))
+#     cursor.commit()
+
+# # Function to handle incoming WebSocket messages
+# def on_message(ws, message):
+#     if not is_unwanted_message(message):
+#         labeled_message = label_message_by_id(message)
+#         if labeled_message:
+#             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#             formatted_message = f"Labeled Data at {timestamp}: {labeled_message}"
+#             print(f"Received: {formatted_message}")
+#             log_to_file(formatted_message)
+
+#             # Database operations
+#             with create_db_connection() as conn:
+#                 cursor = conn.cursor()
+                
+#                 for label, value in labeled_message.items():
+#                     create_table(cursor, label)  # Create table if it doesn't exist
+#                     insert_data(cursor, label, timestamp, value)  # Insert data into the table
+
+# # Function to handle WebSocket errors
+# def on_error(ws, error):
+#     print(f"Error: {error}")
+#     log_to_file(f"Error: {error}")
+
+# # Function to handle WebSocket closure
+# def on_close(ws, close_status_code, close_msg):
+#     print("Connection closed")
+#     log_to_file("Connection closed")
+#     time.sleep(5)
+#     print("Reconnecting...")
+#     log_to_file("Reconnecting...")
+#     run_websocket()
+
+# # Function to handle WebSocket opening
+# def on_open(ws):
+#     print("Connection opened")
+#     log_to_file("Connection opened")
+
+# # Function to run the WebSocket client
+# def run_websocket():
+#     websocket.enableTrace(True)
+#     ws = websocket.WebSocketApp("wss://7111227700060158162.sg1.tunnel.iotbus.net/socket.io/?EIO=3&transport=websocket",
+#                                 on_message=on_message,
+#                                 on_error=on_error,
+#                                 on_close=on_close,
+#                                 on_open=on_open)
+
+#     ws.run_forever()
+
+# if __name__ == "__main__":
+#     thread = threading.Thread(target=run_websocket)
+#     thread.start()
+
+#     try:
+#         while True:
+#             time.sleep(1)
+#     except KeyboardInterrupt:
+#         print("Script interrupted, closing connection")
+#         log_to_file("Script interrupted, closing connection")
