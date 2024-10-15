@@ -231,115 +231,6 @@ id_to_name = {
     725: "P_PRS.FinalOut_LVL_D3",
 }
 
-# # for debugging purpose, the data will be output as a text file
-# # Function to log messages into a text file
-# def log_to_file(message):
-#     with open("websocket_data.txt", "a") as file:
-#         file.write(message + "\n")
-
-# # Function to filter out unwanted messages based on their pattern
-# def is_unwanted_message(message):
-#     # Patterns for messages you want to exclude
-#     pattern1 = re.compile(r'42\["return var to browser",\{"13":\d+\}\]')
-#     pattern2 = re.compile(r'42\["return var to browser",\{"15":"\d{2}:\d{2}:\d{2}"\}\]')
-#     pattern3 = re.compile(r'42\["return var to browser",\{"16":"\d+:\d{2}:\d{2}"\}\]')
-    
-#     # Check if the message matches any of the unwanted patterns
-#     return pattern1.match(message) or pattern2.match(message) or pattern3.match(message)
-
-# # Function to extract and label data by id
-# def label_message_by_id(message):
-#     # Extract the data from the message
-#     match = re.search(r'42\["return var to browser",(\{.*?\})\]', message)  # Find the JSON-like object in the message
-#     if match:
-#         data = eval(match.group(1))  # Convert the string to a dictionary
-#         labeled_data = {}
-#         for key, value in data.items():
-#             key = int(key)  # Convert key to an integer
-#             if key in id_to_name:
-#                 labeled_data[id_to_name[key]] = value
-#             else:
-#                 labeled_data[f"Unknown ID {key}"] = value
-#         if labeled_data:
-#             return labeled_data
-#     return None  # If no valid data is found
-
-# # Function to handle incoming WebSocket messages
-# def on_message(ws, message):
-#     # Filter out unwanted messages
-#     if not is_unwanted_message(message):
-#         labeled_message = label_message_by_id(message)
-#         if labeled_message:
-#             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current timestamp
-#             formatted_message = f"Labeled Data at {timestamp}: {labeled_message}"
-#             print(f"Received: {formatted_message}")
-#             log_to_file(formatted_message)  # Log to the main log file
-            
-#             # Create files for each labeled data entry
-#             for label, value in labeled_message.items():
-#                 # Create a unique filename using the label
-#                 filename = f"{label.replace('.', '_')}.txt"  # Replace '.' with '_' for the filename
-                
-#                 # Append timestamp and value to the individual file
-#                 with open(filename, "a") as file:
-#                     file.write(f"{timestamp} - {label}: {value}\n")  # Append labeled data with timestamp
-
-# # Function to handle WebSocket errors
-# def on_error(ws, error):
-#     print(f"Error: {error}")
-#     log_to_file(f"Error: {error}")
-
-# # Function to handle WebSocket closure
-# def on_close(ws, close_status_code, close_msg):
-#     print("Connection closed")
-#     log_to_file("Connection closed")
-#     # Reconnect after a delay if the connection closes
-#     time.sleep(5)
-#     print("Reconnecting...")
-#     log_to_file("Reconnecting...")
-#     run_websocket()  # Try to reconnect
-
-# # Function to handle WebSocket opening
-# def on_open(ws):
-#     print("Connection opened")
-#     log_to_file("Connection opened")
-
-# # Function to run the WebSocket client
-# def run_websocket():
-#     websocket.enableTrace(True)
-#     # adolina
-#     # ws = websocket.WebSocketApp("wss://7111227700060158162.sg1.tunnel.iotbus.net/socket.io/?EIO=3&transport=websocket",
-#     #                             on_message=on_message,
-#     #                             on_error=on_error,
-#     #                             on_close=on_close,
-#     #                             on_open=on_open)
-#     # websocket.enableTrace(True)
-#     # ajamu
-#     ws = websocket.WebSocketApp("wss://7092627700120179018.hk1.tunnel.iotbus.net/socket.io/?EIO=3&transport=websocket",
-#                                 on_message=on_message,
-#                                 on_error=on_error,
-#                                 on_close=on_close,
-#                                 on_open=on_open)
-
-#     # Run the WebSocket connection
-#     ws.run_forever()
-
-# if __name__ == "__main__":
-#     # Start the WebSocket client
-#     thread = threading.Thread(target=run_websocket)
-#     thread.start()
-
-#     # Keep the script running
-#     try:
-#         while True:
-#             time.sleep(1)
-#     except KeyboardInterrupt:
-#         print("Script interrupted, closing connection")
-#         log_to_file("Script interrupted, closing connection")
-
-
-
-
 # Function to log messages into a text file
 def log_to_file(message):
     with open("websocket_data.txt", "a") as file:
@@ -372,7 +263,7 @@ def label_message_by_id(message):
 def create_db_connection():
     connection_string = (
         "Driver={SQL Server};"
-        "Server=38.47.80.152,1433;"
+        "Server=38.47.80.152,1433;" 
         "Database=IOT_MILL;"
         "UID=iot_mill_user_1;"
         "PWD=i09c332s;"
@@ -396,11 +287,18 @@ def create_table(cursor, label):
 # Function to insert data into the table, with the additional 'data_from' field
 def insert_data(cursor, label, timestamp, value, data_from):
     table_name = label.replace('.', '_')
-    cursor.execute(f"""
-        INSERT INTO {table_name} (Timestamp, Value, Data_From)
-        VALUES (?, ?, ?)
-    """, (timestamp, value, data_from))  # Insert data_from into the table
-    cursor.commit()
+    try:
+        cursor.execute(f"""
+            INSERT INTO {table_name} (Timestamp, Value, Data_From)
+            VALUES (?, ?, ?)
+        """, (timestamp, value, data_from))  # Insert data_from into the table
+        cursor.commit()
+        # Log success
+        log_to_file(f"Successfully inserted data into {table_name}: Timestamp={timestamp}, Value={value}, Data_From={data_from}")
+    except Exception as e:
+        # Log failure
+        log_to_file(f"Failed to insert data into {table_name}: Error={str(e)}")
+
 
 # Function to handle incoming WebSocket messages
 def on_message(ws, message, source):
