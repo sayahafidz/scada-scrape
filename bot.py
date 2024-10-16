@@ -262,11 +262,13 @@ def label_message_by_id(message):
 # Database connection setup
 def create_db_connection():
     connection_string = (
-        "Driver={SQL Server};"
+        "Driver={ODBC Driver 18 for SQL Server};" # untuk linux server
+        # "Driver={SQL Server};" # untuk windows
         "Server=38.47.80.152,1433;" 
         "Database=IOT_MILL;"
         "UID=iot_mill_user_1;"
         "PWD=i09c332s;"
+        "Encrypt=no;"
     )
     return pyodbc.connect(connection_string)
 
