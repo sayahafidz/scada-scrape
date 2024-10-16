@@ -30,6 +30,8 @@ def random_float(min_value=0, max_value=100):
     return round(random.uniform(min_value, max_value), 2)
 
 def test_database_operations():
+    conn = None
+    cursor = None
     try:
         # Connect to the database
         conn = pyodbc.connect(connection_string)
@@ -77,10 +79,10 @@ def test_database_operations():
     except Exception as e:
         logging.error("An error occurred: %s", e)
     finally:
-        # Close the connection
-        if cursor:
+        # Close the cursor and connection
+        if cursor is not None:
             cursor.close()
-        if conn:
+        if conn is not None:
             conn.close()
             logging.info("Database connection closed.")
 
